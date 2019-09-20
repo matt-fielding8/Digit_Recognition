@@ -20,11 +20,16 @@ class NeuralNetwork:
     def forwardProp(self, a):
         '''Forward propogation of input layer `a`. Returns final activation
         layer `a` as ndarray'''
-        self.activations = []
+        activations = [a]
+        zs = []
+
         for w, b in zip(self.weights, self.biasses):
-            a = sigmoid(np.matmul(w, a)+b)
-            self.activations.append(a)
-        return a
+            z = (np.dot(w,a)+b)
+            zs.append(z)
+            a = sigmoid(z)
+            activations.append(a)
+
+        return activations, zs
 
 
     def backProp(self, X, y):
@@ -33,30 +38,14 @@ class NeuralNetwork:
         deltas = [np.zeros([i,1]) for i in self.network_size]
         grads = [np.zeros([i,1]) for i in self.network_size]
 
-        print("delts", [i.shape for i in deltas])
-
-        a = X
-        # List to store activation layers
-        activations = [X]
-        # List to store z vectors
-        zs = []
-
         # Forward pass
-        for w, b in zip(self.weights, self.biasses):
-            z = (np.dot(w,a)+b)
-            zs.append(z)
-            a = sigmoid(z)
-            activations.append(a)
+        activations, zs = self.forwardProp(X)
 
-        deltas[-1] = (a - y)
-
-        print("zs", [i.shape for i in zs])
-        print("weights", [i.shape for i in self.weights])
+        deltas[-1] = (activations[-1] - y)
 
         for l in range(2, self.num_layers):
             deltas[-l] = np.dot(self.weights[-l+1].T, deltas[-l+1])
-            grads[-l] = np.dot(deltas[-l+1], activations[-l].T)*\
-                            sigmoidPrime(zs[-l+1])
+            grads[-l] = np.dot(deltas[-l+1], activations[-l].T) * sigmoidPrime(zs[-l+1])
 
         return grads
 
