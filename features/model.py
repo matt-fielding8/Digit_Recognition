@@ -53,8 +53,18 @@ class NeuralNetwork:
     def MSE(self, a, y):
         '''Calculates mean squared error for predictions `a` and actual values
         `y`.'''
-        m = len(a)
+        # Compute batch size
+        m = y.shape[0]
         return np.sum((y-a)**2)/(2*m)
+
+    def logLoss(self, a, y):
+        '''Calculates logarithmic loss for predictions `a` and actual values
+        `y`. Equivalent to categorical_crossentropy in Keras'''
+        # Compute batch size
+        m = y.shape[0]
+        return (-1/m)*np.sum(y*np.log(a)+(1-y)*np.log(1-a))
+
+
 
 def sigmoid(z):
     '''Computes the sigmoid function'''
