@@ -14,8 +14,7 @@ class NeuralNetwork:
         self.predicted_classes = network_size[-1]
 
         self.biasses = [np.random.rand(i,1) for i in network_size[1:]]
-        self.weights = [np.random.rand(i, j) for j, i in
-                            zip(network_size[:-1], network_size[1:])]
+        self.weights = [np.random.rand(i, j) for j, i in zip(network_size[:-1], network_size[1:])]
 
     def forwardProp(self, a):
         '''Forward propogation of input layer `a`. Returns final activation
@@ -53,6 +52,41 @@ class NeuralNetwork:
             w_grads[-l] = np.array(np.dot(delta, activations[-l].T))
 
         return b_grads, w_grads
+
+    def fit(self, X, y, epochs=1, batch_size=1, shuffle=True, eta=0.01):
+        '''Trains the model'''
+        steps = X.shape[0] // batch_size
+
+        for epoch in range(epochs):
+            if shuffle:
+                seed = np.random.get_state()
+                np.random.shuffle(X)
+                np.random.set_state(seed)
+                np.random.shuffle(y)
+                print(X.shape, y.shape)
+            X_batches = [X[i:i+batch_size] for i in range(0,X.shape[0], batch_size)]
+            y_batches = [y[i:i+batch_size] for i in range(0,y.shape[0], batch_size)]
+            print(X_batches)
+            for X, y in zip(X_batches, y_batches):
+                print(X, y)
+                self.update_params(X, y, eta)
+
+    def update_params(self, X, y, eta):
+        '''Updates weights and biasses. X and y are batches'''
+        # Initialise gradients
+        b_grads = [np.zeros(b.shape) for b in self.biasses]
+        w_grads = [np.zeros(w.shape) for w in self.weights]
+        # Compute backprop to get derivatives
+        delta_b_grads, delta_w_grads = self.backProp(X, y)
+        # Update gradients
+        b_grads = [b+db for b, db in zip(b_grads, delta_b_grads)]
+        w_grads = [w+dw for w, dw in zip(w_grads, delta_w_grads)]
+        # Update params
+        self.weights = [w-(eta/X.shape[0])*dw for w, dw in (self.weights, w_grads)]
+        self.biasses = [b-(eta/X.shape[0])*db for b, db in (self.biasses, b_grads)]
+
+
+
 
 
     def MSE(self, a, y):
