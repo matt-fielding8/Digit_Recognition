@@ -34,20 +34,25 @@ class NeuralNetwork:
 
     def backProp(self, X, y):
         '''Back propogation to get gradients'''
-        # Initialise list of delta vectors
-        deltas = [np.zeros([i,1]) for i in self.network_size]
-        grads = [np.zeros([i,1]) for i in self.network_size]
+        # Initialise list of gradient vectors
+        b_grads = [np.zeros(b.shape) for b in self.biasses]
+        w_grads = [np.zeros(w.shape) for w in self.weights]
 
         # Forward pass
         activations, zs = self.forwardProp(X)
 
-        deltas[-1] = (activations[-1] - y)
+        # Initialise delta
+        delta = (activations[-1] - y) * sigmoidPrime(zs[-1])
+        b_grads[-1] = delta
+        w_grads[-1] = np.dot(delta, activations[-2].T)
 
+        # Propagate backwards through all layers
         for l in range(2, self.num_layers):
-            deltas[-l] = np.dot(self.weights[-l+1].T, deltas[-l+1])
-            grads[-l] = np.dot(deltas[-l+1], activations[-l].T) * sigmoidPrime(zs[-l+1])
+            delta = np.dot(self.weights[-l+1].T, delta) * sigmoidPrime(zs[-l])
+            b_grads[-l] = np.array(delta)
+            w_grads[-l] = np.array(np.dot(delta, activations[-l].T))
 
-        return grads
+        return b_grads, w_grads
 
 
     def MSE(self, a, y):
@@ -62,6 +67,7 @@ class NeuralNetwork:
         `y`. Equivalent to categorical_crossentropy in Keras'''
         # Compute batch size
         m = y.shape[0]
+        print(m)
         return (-1/m)*np.sum(y*np.log(a)+(1-y)*np.log(1-a))
 
 
