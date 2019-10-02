@@ -13,8 +13,8 @@ class NeuralNetwork:
         self.network_size = network_size
         self.predicted_classes = network_size[-1]
 
-        self.biasses = [np.random.rand(i,1) for i in network_size[1:]]
-        self.weights = [np.random.rand(i, j) for j, i in zip(network_size[:-1], network_size[1:])]
+        self.biasses = [np.random.rand(1, i) for i in network_size[1:]]
+        self.weights = [np.random.rand(i, j) for i, j in zip(network_size[:-1], network_size[1:])]
 
     def forwardProp(self, a):
         '''Forward propogation of input layer `a`. Returns final activation
@@ -23,7 +23,9 @@ class NeuralNetwork:
         zs = []
 
         for w, b in zip(self.weights, self.biasses):
-            z = (np.dot(w,a)+b)
+            print(w.shape, b.shape)
+            z = np.add(np.dot(a,w),b)
+            print(z.shape)
             zs.append(z)
             a = sigmoid(z)
             activations.append(a)
@@ -43,13 +45,16 @@ class NeuralNetwork:
         # Initialise delta
         delta = (activations[-1] - y) * sigmoidPrime(zs[-1])
         b_grads[-1] = delta
-        w_grads[-1] = np.dot(delta, activations[-2].T)
+        w_grads[-1] = np.dot(activations[-2].T, delta)
 
         # Propagate backwards through all layers
         for l in range(2, self.num_layers):
-            delta = np.dot(self.weights[-l+1].T, delta) * sigmoidPrime(zs[-l])
+            delta = np.dot(delta, self.weights[-l+1].T) * sigmoidPrime(zs[-l])
             b_grads[-l] = np.array(delta)
-            w_grads[-l] = np.array(np.dot(delta, activations[-l].T))
+            w_grads[-l] = np.array(np.dot(activations[-l].T, delta))
+
+        # print("b_grads", [b.shape for b in b_grads])
+        # print("w_grads", [w.shape for w in w_grads])
 
         return b_grads, w_grads
 
@@ -64,11 +69,12 @@ class NeuralNetwork:
                 np.random.set_state(seed)
                 np.random.shuffle(y)
                 print(X.shape, y.shape)
+                # print(X)
             X_batches = [X[i:i+batch_size] for i in range(0,X.shape[0], batch_size)]
             y_batches = [y[i:i+batch_size] for i in range(0,y.shape[0], batch_size)]
-            print(X_batches)
+            # print(X_batches)
             for X, y in zip(X_batches, y_batches):
-                print(X, y)
+                # print(X, y)
                 self.update_params(X, y, eta)
 
     def update_params(self, X, y, eta):
@@ -81,9 +87,15 @@ class NeuralNetwork:
         # Update gradients
         b_grads = [b+db for b, db in zip(b_grads, delta_b_grads)]
         w_grads = [w+dw for w, dw in zip(w_grads, delta_w_grads)]
+
+        # print("b_grads", [b.shape for b in b_grads])
+        # print("w_grads", [w.shape for w in w_grads])
+        # print("bias", [b.shape for b in self.biasses])
+        # print("weight", [w.shape for w in self.weights])
+
         # Update params
-        self.weights = [w-(eta/X.shape[0])*dw for w, dw in (self.weights, w_grads)]
-        self.biasses = [b-(eta/X.shape[0])*db for b, db in (self.biasses, b_grads)]
+        self.weights = [w-(eta/X.shape[0])*dw for w, dw in zip(self.weights, w_grads)]
+        self.biasses = [b-(eta/X.shape[0])*db for b, db in zip(self.biasses, b_grads)]
 
 
 
@@ -113,3 +125,24 @@ def sigmoid(z):
 def sigmoidPrime(z):
     '''Derivative of the sigmoid function'''
     return sigmoid(z)*(1-sigmoid(z))
+
+
+def y_binary(y, min_class=0):
+    '''
+    Converts numerical class values to binary vectors for multiclass problems.
+    Returns m x k matrix where m is the number of examples and k is number of classes.
+    >>> def y_binary([1,4,3])
+    [[1,0,0,0],[0,0,0,1],[0,0,1,0]]
+    '''
+    # Class range starts at zero
+    if not min_class:
+        matrix = np.zeros((y.shape[0], y.max() + 1))
+        for i, j in enumerate(y):
+            matrix[i][j] += 1
+    # Class range starts at one
+    else:
+        matrix = np.zeros((y.shape[0], y.max()))
+        for i, j in enumerate(y):
+            matrix[i][j - 1] += 1
+
+    return np.array(matrix)
