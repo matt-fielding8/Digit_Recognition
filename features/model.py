@@ -3,6 +3,7 @@ by stochastic gradient descent. Neural network designed to flexibly predict
 hand written digits and sign language images.'''
 
 import numpy as np
+from time import perf_counter as timer
 
 class NeuralNetwork:
     def __init__(self, network_size):
@@ -25,10 +26,7 @@ class NeuralNetwork:
         zs = []
 
         for w, b in zip(self.weights, self.biasses):
-            # print(w.shape, b.shape)
             z = np.dot(a, w)+b
-            print("z",z)
-            print(z.shape)
             zs.append(z)
             a = sigmoid(z)
             activations.append(a)
@@ -44,7 +42,6 @@ class NeuralNetwork:
 
         # Forward pass
         activations, zs = self.forwardProp(X)
-        print("activations", activations)
 
         # Initialise delta
         delta = (activations[-1] - y) * sigmoidPrime(zs[-1])
@@ -55,10 +52,7 @@ class NeuralNetwork:
         for l in range(2, self.num_layers):
             delta = np.dot(delta, self.weights[-l+1].T) * sigmoidPrime(zs[-l])
             b_grads[-l] = np.array(delta)
-            w_grads[-l] = np.array(np.dot(activations[-l].T, delta))
-
-        # print("b_grads", [b.shape for b in b_grads])
-        # print("w_grads", [w.shape for w in w_grads])
+            w_grads[-l] = np.array(np.dot(activations[-l-1].T, delta))
 
         return b_grads, w_grads
 
@@ -67,42 +61,36 @@ class NeuralNetwork:
         steps = X.shape[0] // batch_size
 
         for epoch in range(epochs):
+            start = timer()
             if shuffle:
                 seed = np.random.get_state()
                 np.random.shuffle(X)
                 np.random.set_state(seed)
                 np.random.shuffle(y)
-                # print(X.shape, y.shape)
-                # print(X)
             X_batches = [X[i:i+batch_size] for i in range(0,X.shape[0], batch_size)]
             y_batches = [y[i:i+batch_size] for i in range(0,y.shape[0], batch_size)]
-            # print(X_batches)
-            for X_batch, y_batch in zip(X_batches, y_batches):
-                # print(X, y)
-                self.update_params(X_batch, y_batch, eta)
-                # print(self.weights)
-                # print(self.biasses)
 
-            a,_ = self.forwardProp(X)
-            self.cost = self.logLoss(a[-1], y)
-            print("epoch {}: Cost: {}".format(epoch, self.cost))
-            break
+            for X_batch, y_batch in zip(X_batches, y_batches):
+                self.update_params(X_batch, y_batch, eta)
+
+            # compute cost of final batch
+            a,_ = self.forwardProp(X_batch)
+            self.cost = self.logLoss(a[-1], y_batch)
+            end = timer()
+            print("epoch {}-> Cost: {}, Execution Time: {}".format(epoch, self.cost, (end-start)))
+
 
     def update_params(self, X, y, eta):
         '''Updates weights and biasses. X and y are batches'''
         # Initialise gradients
         b_grads = [np.zeros(b.shape) for b in self.biasses]
         w_grads = [np.zeros(w.shape) for w in self.weights]
+
         # Compute backprop to get derivatives
         delta_b_grads, delta_w_grads = self.backProp(X, y)
         # Update gradients
         b_grads = [b+db for b, db in zip(b_grads, delta_b_grads)]
         w_grads = [w+dw for w, dw in zip(w_grads, delta_w_grads)]
-
-        # print("b_grads", [b.shape for b in b_grads])
-        # print("w_grads", [w.shape for w in w_grads])
-        # print("bias", [b.shape for b in self.biasses])
-        # print("weight", [w.shape for w in self.weights])
 
         # Update params
         self.weights = [w-(eta/X.shape[0])*dw for w, dw in zip(self.weights, delta_w_grads)]
@@ -121,18 +109,8 @@ class NeuralNetwork:
         `y`. Equivalent to categorical_crossentropy in Keras'''
         # Compute batch size
         m = y.shape[0]
-        # print(a)
-        # print(y.shape)
-        # print(a.shape)
-        print("a", a)
-        print("log(a):", np.log(a))
-        print("log(1-a):", np.log(a))
 
-
-        print("y=1:", y*np.log(a))
-        print("y=0:", (1-y)*np.log(1-a))
-
-        return (-1/m)*np.sum(y*np.log(a)+(1-y)*np.log(1-a))
+        return (-1/m)*np.sum(np.multiply(y,np.log(a))+np.multiply((1-y), np.log(1-a)))
 
 
 
