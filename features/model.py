@@ -12,19 +12,22 @@ class NeuralNetwork:
         self.num_layers = len(network_size)
         self.network_size = network_size
         self.predicted_classes = network_size[-1]
-
-        self.biasses = [np.random.rand(1, i) for i in network_size[1:]]
-        self.weights = [np.random.rand(i, j) for i, j in zip(network_size[:-1], network_size[1:])]
+        # Weight and biasses scaled down by a factor of 2 to improve forward forward propogation
+        # Without scaling, activation layer elements become symmetrically equal to 1
+        self.biasses = [np.random.rand(1, i)*0.01 for i in network_size[1:]]
+        self.weights = [np.random.rand(i, j)*0.01 for i, j in zip(network_size[:-1], network_size[1:])]
 
     def forwardProp(self, a):
         '''Forward propogation of input layer `a`. Returns final activation
         layer `a` as ndarray'''
+        # Create caches for linear activations
         activations = [a]
         zs = []
 
         for w, b in zip(self.weights, self.biasses):
-            print(w.shape, b.shape)
-            z = np.add(np.dot(a,w),b)
+            # print(w.shape, b.shape)
+            z = np.dot(a, w)+b
+            print("z",z)
             print(z.shape)
             zs.append(z)
             a = sigmoid(z)
@@ -41,6 +44,7 @@ class NeuralNetwork:
 
         # Forward pass
         activations, zs = self.forwardProp(X)
+        print("activations", activations)
 
         # Initialise delta
         delta = (activations[-1] - y) * sigmoidPrime(zs[-1])
@@ -58,7 +62,7 @@ class NeuralNetwork:
 
         return b_grads, w_grads
 
-    def fit(self, X, y, epochs=1, batch_size=1, shuffle=True, eta=0.01):
+    def fit(self, X, y, epochs=1, batch_size=1, shuffle=False, eta=0.01):
         '''Trains the model'''
         steps = X.shape[0] // batch_size
 
@@ -68,14 +72,21 @@ class NeuralNetwork:
                 np.random.shuffle(X)
                 np.random.set_state(seed)
                 np.random.shuffle(y)
-                print(X.shape, y.shape)
+                # print(X.shape, y.shape)
                 # print(X)
             X_batches = [X[i:i+batch_size] for i in range(0,X.shape[0], batch_size)]
             y_batches = [y[i:i+batch_size] for i in range(0,y.shape[0], batch_size)]
             # print(X_batches)
-            for X, y in zip(X_batches, y_batches):
+            for X_batch, y_batch in zip(X_batches, y_batches):
                 # print(X, y)
-                self.update_params(X, y, eta)
+                self.update_params(X_batch, y_batch, eta)
+                # print(self.weights)
+                # print(self.biasses)
+
+            a,_ = self.forwardProp(X)
+            self.cost = self.logLoss(a[-1], y)
+            print("epoch {}: Cost: {}".format(epoch, self.cost))
+            break
 
     def update_params(self, X, y, eta):
         '''Updates weights and biasses. X and y are batches'''
@@ -94,11 +105,8 @@ class NeuralNetwork:
         # print("weight", [w.shape for w in self.weights])
 
         # Update params
-        self.weights = [w-(eta/X.shape[0])*dw for w, dw in zip(self.weights, w_grads)]
-        self.biasses = [b-(eta/X.shape[0])*db for b, db in zip(self.biasses, b_grads)]
-
-
-
+        self.weights = [w-(eta/X.shape[0])*dw for w, dw in zip(self.weights, delta_w_grads)]
+        self.biasses = [b-(eta/X.shape[0])*db for b, db in zip(self.biasses, delta_b_grads)]
 
 
     def MSE(self, a, y):
@@ -113,7 +121,17 @@ class NeuralNetwork:
         `y`. Equivalent to categorical_crossentropy in Keras'''
         # Compute batch size
         m = y.shape[0]
-        print(m)
+        # print(a)
+        # print(y.shape)
+        # print(a.shape)
+        print("a", a)
+        print("log(a):", np.log(a))
+        print("log(1-a):", np.log(a))
+
+
+        print("y=1:", y*np.log(a))
+        print("y=0:", (1-y)*np.log(1-a))
+
         return (-1/m)*np.sum(y*np.log(a)+(1-y)*np.log(1-a))
 
 
