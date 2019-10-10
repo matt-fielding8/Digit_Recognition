@@ -112,6 +112,35 @@ class NeuralNetwork:
 
         return (-1/m)*np.sum(np.multiply(y,np.log(a))+np.multiply((1-y), np.log(1-a)))
 
+    def predictions(self, a):
+        '''
+        Assigns 1 to class with the maximum probability as 0 to other classes.
+        Returns m*k matrix where m is the number of training examples and k
+        is the number of classes
+        >>> def predictions([[0.1,0.4,0.9,0.3], [0.1,0.7,0.01,0.2]])
+        [[0,0,1,0], [0,1,0,0]]
+        '''
+        predictions = []
+        for m in a:
+            # find index of maximum probability
+            max_prob_idx = m.index(np.max(m))
+            # set all values to 0, max probability to 1
+            m = [0 if (i != max_prob_idx) else 1 for i in range(len(m))]
+            predictions.append(m)
+
+        return predictions
+
+    def predictAccuracy(self, a_pred, y, pcnt=False):
+        '''
+        Compares predicted values with actual values. Returns accuracy as a float or string.
+        '''
+
+        if pcnt:
+            accuracy = np.mean([a == y for a, y in zip(a_pred, y)])
+            return "{:.2f}%".format(accuracy*100)
+        else:
+            return np.mean([a == y for a, y in zip(a_pred, y)])
+
 
 
 def sigmoid(z):
