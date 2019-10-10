@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 from features import model as mod
 
-df = pd.read_csv('../data/train.csv', nrows=100)
+df = pd.read_csv('../data/train.csv', nrows=10000)
 print(df.shape)
 print(df.head())
 
@@ -12,13 +12,7 @@ print(X.max())
 y = df.iloc[:,0]
 y = mod.y_binary(y)
 
-net = mod.NeuralNetwork([784,784,10])
+net = mod.NeuralNetwork([784,150,150,150,150,10])
 
-net.fit(X,y,epochs=5,batch_size=1)
-
-a, zs = net.forwardProp(X)
-
-print("a", a)
-print("zs", zs)
-print("sigs", [mod.sigmoid(z) for z in zs])
+net.fit(X,y,epochs=10,batch_size=100)
 
