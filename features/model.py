@@ -56,9 +56,10 @@ class NeuralNetwork:
 
         return b_grads, w_grads
 
-    def fit(self, X, y, epochs=1, batch_size=1, shuffle=False, eta=0.01):
+    def fit(self, X, y, epochs=1, batch_size=1, shuffle=False, eta=0.01, verbose=False):
         '''Trains the model'''
         steps = X.shape[0] // batch_size
+        global_start = timer()
 
         for epoch in range(epochs):
             start = timer()
@@ -73,11 +74,25 @@ class NeuralNetwork:
             for X_batch, y_batch in zip(X_batches, y_batches):
                 self.update_params(X_batch, y_batch, eta)
 
-            # compute cost of final batch
-            a,_ = self.forwardProp(X)
-            self.cost = self.logLoss(a[-1], y)
-            end = timer()
-            print("epoch {}-> Cost: {}, Execution Time: {}".format(epoch, self.cost, (end-start)))
+            if verbose:
+                # compute cost of final batch
+                a,_ = self.forwardProp(X)
+                self.cost = self.logLoss(a[-1], y)
+                a_binary = self.predictions(np.array(a[-1]), binary=True)
+                self.accuracy = self.predictAccuracy(a_binary, y)
+                end = timer()
+                print("epoch {}-> Cost: {}, Accuracy: {}, Execution Time: {}"\
+                                .format(epoch, self.cost, self.accuracy, (end-start)))
+
+        a, _ = self.forwardProp(X)
+        self.cost = self.logLoss(a[-1], y)
+        a_binary = self.predictions(np.array(a[-1]), binary=True)
+        self.accuracy = self.predictAccuracy(a_binary, y)
+        global_end = timer()
+        print("Completed ---> Cost: {}, Accuracy: {}, Execution Time: {}"\
+              .format(self.cost, self.accuracy, (global_end - global_start)))
+
+
 
     def update_params(self, X, y, eta):
         '''Updates weights and biasses. X and y are batches'''
@@ -112,7 +127,7 @@ class NeuralNetwork:
 
         return (-1/m)*np.sum(np.multiply(y,np.log(a))+np.multiply((1-y), np.log(1-a)))
 
-    def predictions(self, a):
+    def predictions(self, a, binary=True):
         '''
         Assigns 1 to class with the maximum probability as 0 to other classes.
         Returns m*k matrix where m is the number of training examples and k
@@ -120,19 +135,16 @@ class NeuralNetwork:
         >>> def predictions([[0.1,0.4,0.9,0.3], [0.1,0.7,0.01,0.2]])
         [[0,0,1,0], [0,1,0,0]]
         '''
-        predictions = []
-        for m in a:
-            # find index of maximum probability
-            max_prob_idx = m.index(np.max(m))
-            # set all values to 0, max probability to 1
-            m = [0 if (i != max_prob_idx) else 1 for i in range(len(m))]
-            predictions.append(m)
+        if binary:
+            return y_binary(np.argmax(a, 1))
+        else:
+            return np.argmax(a, 1)
 
-        return predictions
 
     def predictAccuracy(self, a_pred, y, pcnt=False):
         '''
-        Compares predicted values with actual values. Returns accuracy as a float or string.
+        Compares predicted values with actual values.
+        Returns accuracy as a float or string.
         '''
 
         if pcnt:
