@@ -45,13 +45,13 @@ class NeuralNetwork:
 
         # Initialise delta
         delta = (activations[-1] - y) * sigmoidPrime(zs[-1])
-        b_grads[-1] = delta
+        b_grads[-1] = np.sum(delta)/delta.shape[0]
         w_grads[-1] = np.dot(activations[-2].T, delta)
 
         # Propagate backwards through all layers
         for l in range(2, self.num_layers):
             delta = np.dot(delta, self.weights[-l+1].T) * sigmoidPrime(zs[-l])
-            b_grads[-l] = np.array(delta)
+            b_grads[-l] = np.sum(delta)/delta.shape[0]
             w_grads[-l] = np.array(np.dot(activations[-l-1].T, delta))
 
         return b_grads, w_grads
@@ -74,17 +74,17 @@ class NeuralNetwork:
                 self.update_params(X_batch, y_batch, eta)
 
             # compute cost of final batch
-            a,_ = self.forwardProp(X_batch)
-            self.cost = self.logLoss(a[-1], y_batch)
+            a,_ = self.forwardProp(X)
+            self.cost = self.logLoss(a[-1], y)
             end = timer()
             print("epoch {}-> Cost: {}, Execution Time: {}".format(epoch, self.cost, (end-start)))
-
 
     def update_params(self, X, y, eta):
         '''Updates weights and biasses. X and y are batches'''
         # Initialise gradients
         b_grads = [np.zeros(b.shape) for b in self.biasses]
         w_grads = [np.zeros(w.shape) for w in self.weights]
+
 
         # Compute backprop to get derivatives
         delta_b_grads, delta_w_grads = self.backProp(X, y)
